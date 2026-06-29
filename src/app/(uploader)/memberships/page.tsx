@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { requireVerifiedUploader } from "@/lib/auth/session";
+import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { resolvePeriod } from "@/lib/period";
 
@@ -29,7 +29,7 @@ export default async function MembershipsPage({
 }: {
   searchParams: Promise<{ range?: string; month?: string }>;
 }) {
-  const user = await requireVerifiedUploader();
+  const user = await requireVerifiedUploaderOrRedirect();
   const sp = await searchParams;
   const period = resolvePeriod(sp);
 

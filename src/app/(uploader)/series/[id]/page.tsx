@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { requireVerifiedUploader } from "@/lib/auth/session";
+import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { toDateTimeDisplay } from "@/lib/datetime-local";
 
@@ -19,7 +19,7 @@ export default async function SeriesDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireVerifiedUploader();
+  const user = await requireVerifiedUploaderOrRedirect();
 
   const series = await db.series.findUnique({
     where: { id },

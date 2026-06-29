@@ -8,13 +8,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { requireVerifiedUploader } from "@/lib/auth/session";
+import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 export default async function MySeriesListPage() {
-  const user = await requireVerifiedUploader();
+  const user = await requireVerifiedUploaderOrRedirect();
 
   const rows = await db.series.findMany({
     where: { authorId: user.id },

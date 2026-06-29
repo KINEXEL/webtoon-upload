@@ -5,7 +5,7 @@ import { AssetEditor } from "@/components/episode/asset-editor";
 import { EpisodeForm } from "@/components/episode/episode-form";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
-import { requireVerifiedUploader } from "@/lib/auth/session";
+import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { toDateTimeDisplay } from "@/lib/datetime-local";
 
@@ -17,7 +17,7 @@ export default async function EpisodeDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireVerifiedUploader();
+  const user = await requireVerifiedUploaderOrRedirect();
 
   const episode = await db.episode.findUnique({
     where: { id },

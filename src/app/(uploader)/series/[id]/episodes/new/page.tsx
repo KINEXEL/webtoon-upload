@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createUploaderEpisodeAction } from "@/app/actions/episodes";
 import { EpisodeUploadForm } from "@/components/episode/episode-upload-form";
 import { PageHeader } from "@/components/page-header";
-import { requireVerifiedUploader } from "@/lib/auth/session";
+import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export default async function NewEpisodePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireVerifiedUploader();
+  const user = await requireVerifiedUploaderOrRedirect();
   const { id: seriesId } = await params;
 
   const series = await db.series.findUnique({
