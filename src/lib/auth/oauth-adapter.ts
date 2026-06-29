@@ -1,13 +1,23 @@
-import { randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import type {
   Adapter,
   AdapterAccount,
   AdapterUser,
 } from "next-auth/adapters";
-import type { Prisma, User } from "@kinexel/webtoon-db";
+import { Prisma } from "@kinexel/webtoon-db";
+import type { User } from "@kinexel/webtoon-db";
 
 import { db } from "@/lib/db";
 import { validateUserHandle } from "@/lib/user-handle";
+
+const PUBLIC_ID_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/** webtoon-app의 payment-identifiers.ts와 동일한 형식(U+5자) */
+function generateUserPublicId(): string {
+  const bytes = randomBytes(5);
+  const code = Array.from(bytes, (byte) => PUBLIC_ID_ALPHABET[byte % PUBLIC_ID_ALPHABET.length]).join("");
+  return `U${code}`;
+}
 
 type AccountRow = {
   id: string;
@@ -74,18 +84,31 @@ export const oauthAdapter: Adapter = {
     }
 
     const handle = makeSocialHandle(user);
-    const created = await db.user.create({
-      data: {
-        username: handle,
-        email: user.email.toLowerCase(),
-        emailVerifiedAt: user.emailVerified ?? new Date(),
-        name: handle,
-        avatarUrl: user.image,
-        verified: false,
-      },
-    });
+    const data = {
+      username: handle,
+      email: user.email.toLowerCase(),
+      emailVerifiedAt: user.emailVerified ?? new Date(),
+      name: handle,
+      avatarUrl: user.image,
+      verified: false,
+    };
 
-    return toAdapterUser(created);
+    // publicId 유니크 충돌 시 재시도 (webtoon-app의 createUserWithPublicId와 동일 패턴)
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        const created = await db.user.create({
+          data: { ...data, publicId: generateUserPublicId() },
+        });
+        return toAdapterUser(created);
+      } catch (error) {
+        const target =
+          error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002"
+            ? String(error.meta?.target ?? "")
+            : "";
+        if (!target.includes("publicId")) throw error;
+      }
+    }
+    throw new Error("Unable to allocate a unique user public ID");
   },
 
   async getUser(id) {

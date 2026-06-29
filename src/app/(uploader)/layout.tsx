@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { UploaderHeader } from "@/components/uploader-header";
+import { UploaderSidebar } from "@/components/uploader-sidebar";
 import { getSessionUploader } from "@/lib/auth/session";
 
 export default async function UploaderLayout({
@@ -16,9 +17,12 @@ export default async function UploaderLayout({
   }
 
   return (
-    <div className="flex min-h-svh w-full flex-col">
-      <UploaderHeader user={user} />
-      <main className="flex-1 overflow-y-auto p-6">{children}</main>
+    <div className="flex min-h-svh w-full">
+      <UploaderSidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <UploaderHeader user={user} />
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      </div>
     </div>
   );
 }
