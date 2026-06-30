@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -17,7 +18,14 @@ export function UploaderSidebar() {
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
       <div className="flex h-14 items-center border-b px-5">
-        <span className="font-semibold">COMIQUE Upload</span>
+        <Image
+          src="/type-basic.svg"
+          alt="COMIQUE"
+          width={147}
+          height={40}
+          priority
+          className="h-6 w-auto"
+        />
       </div>
       <nav className="flex-1 overflow-y-auto p-3">
         <ul className="flex flex-col gap-0.5">
