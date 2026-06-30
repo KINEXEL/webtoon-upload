@@ -14,7 +14,7 @@ type Tab = "THIS_MONTH" | "CUSTOM" | "ALL";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "THIS_MONTH", label: "이번달" },
-  { value: "CUSTOM", label: "특정 월" },
+  { value: "CUSTOM", label: "지정 선택" },
   { value: "ALL", label: "전체보기" },
 ];
 
@@ -36,7 +36,11 @@ export function PeriodToggle({ basePath }: Props) {
       if (nextMonth) next.set("month", nextMonth);
       else next.delete("month");
     }
-    router.push(`${basePath}?${next.toString()}`);
+    const qs = next.toString();
+    router.push(qs ? `${basePath}?${qs}` : basePath);
+    // force-dynamic 페이지라도 client Router Cache 때문에 쿼리만 바뀌면
+    // 서버 컴포넌트가 다시 안 돌 수 있어, 명시적으로 새로고침해 데이터를 갱신한다.
+    router.refresh();
   }
 
   return (

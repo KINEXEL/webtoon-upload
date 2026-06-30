@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { googleLoginAction, loginAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { isGoogleAuthConfigured } from "@/lib/auth/google";
+import { getSessionUploader } from "@/lib/auth/session";
 
 const ERRORS: Record<string, string> = {
   missing: "아이디와 비밀번호를 입력하세요.",
@@ -26,6 +29,14 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; callbackUrl?: string }>;
 }) {
   const { error, callbackUrl } = await searchParams;
+
+  // DB까지 확인해서 진짜 유효(verified, 비정지)한 세션일 때만 / 로 보낸다.
+  // JWT만 유효하고 DB 기준으로는 막힌 계정은 여기서 그냥 로그인 폼을 보여줘야
+  // /login ↔ / 무한 리다이렉트 루프를 피할 수 있다.
+  const user = await getSessionUploader();
+  if (user && !user.isSuspended && user.verified) {
+    redirect(callbackUrl ?? "/");
+  }
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
