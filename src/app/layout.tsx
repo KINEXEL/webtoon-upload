@@ -1,26 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { getDefaultOpenGraphMetadata } from "@/lib/metadata/open-graph";
 import "./globals.css";
 
 const title = "COMIQUE Upload";
 const description =
   "COMIQUE 작가가 본인 작품의 회차 콘텐츠를 업로드하는 사이트";
-const siteName = "COMIQUE";
-const metaImage = "/metaimg.jpg";
-
-function getMetadataBase() {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_UPLOAD_SITE_URL ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
-
-  if (!siteUrl) {
-    return undefined;
-  }
-
-  return new URL(siteUrl);
-}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,9 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: getMetadataBase(),
-  title,
-  description,
+  ...getDefaultOpenGraphMetadata({ title, description }),
   keywords: [
     "COMIQUE",
     "웹툰",
@@ -45,7 +29,7 @@ export const metadata: Metadata = {
     "webtoon",
     "novel",
     "comics",
-    "backoffice",
+    "upload",
   ],
   icons: {
     icon: [
@@ -56,27 +40,6 @@ export const metadata: Metadata = {
       { url: "/favicon.svg?v=2", type: "image/svg+xml", sizes: "any" },
       { url: "/favicon.ico?v=2", sizes: "32x32" },
     ],
-  },
-  openGraph: {
-    title,
-    description,
-    url: "/",
-    siteName,
-    type: "website",
-    images: [
-      {
-        url: metaImage,
-        width: 1201,
-        height: 601,
-        alt: "COMIQUE Upload",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title,
-    description,
-    images: [metaImage],
   },
 };
 
