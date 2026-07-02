@@ -1,17 +1,57 @@
 import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import Facebook from "next-auth/providers/facebook";
 import Google from "next-auth/providers/google";
+import Twitter from "next-auth/providers/twitter";
 
 import { authConfig } from "@/auth.config";
+import {
+  createFacebookPlaceholderEmail,
+  isFacebookAuthConfigured,
+} from "@/lib/auth/facebook";
 import { isGoogleAuthConfigured } from "@/lib/auth/google";
 import { oauthAdapter } from "@/lib/auth/oauth-adapter";
+import {
+  createTwitterPlaceholderEmail,
+  isTwitterAuthConfigured,
+} from "@/lib/auth/twitter";
 import { db } from "@/lib/db";
 
 const googleProvider = isGoogleAuthConfigured()
   ? Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
+    })
+  : null;
+
+const facebookProvider = isFacebookAuthConfigured()
+  ? Facebook({
+      clientId: process.env.AUTH_FACEBOOK_ID!,
+      clientSecret: process.env.AUTH_FACEBOOK_SECRET!,
+      profile(profile) {
+        return {
+          id: profile.id,
+          name: profile.name,
+          email: profile.email ?? createFacebookPlaceholderEmail(profile.id),
+          image: profile.picture?.data?.url,
+        };
+      },
+    })
+  : null;
+
+const twitterProvider = isTwitterAuthConfigured()
+  ? Twitter({
+      clientId: process.env.AUTH_TWITTER_ID!,
+      clientSecret: process.env.AUTH_TWITTER_SECRET!,
+      profile({ data }) {
+        return {
+          id: data.id,
+          name: data.name,
+          email: createTwitterPlaceholderEmail(data.id),
+          image: data.profile_image_url,
+        };
+      },
     })
   : null;
 
@@ -23,10 +63,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     async signIn({ account, profile, user }) {
-      if (account?.provider !== "google") return true;
+      const provider = account?.provider;
+      if (
+        provider !== "google" &&
+        provider !== "twitter" &&
+        provider !== "facebook"
+      ) {
+        return true;
+      }
 
-      const googleProfile = profile as { email_verified?: boolean } | undefined;
-      if (!user.email || googleProfile?.email_verified !== true) return false;
+      // Google 은 이메일 인증 여부를 추가로 확인(X/Facebook 은 placeholder 이메일 사용)
+      if (provider === "google") {
+        const googleProfile = profile as { email_verified?: boolean } | undefined;
+        if (!user.email || googleProfile?.email_verified !== true) return false;
+      }
 
       const existingUser = await db.user.findUnique({
         where: { id: user.id },
@@ -87,5 +137,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
     ...(googleProvider ? [googleProvider] : []),
+    ...(twitterProvider ? [twitterProvider] : []),
+    ...(facebookProvider ? [facebookProvider] : []),
   ],
 });

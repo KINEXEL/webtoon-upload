@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 
-import { googleLoginAction, loginAction } from "@/app/actions/auth";
+import {
+  facebookLoginAction,
+  googleLoginAction,
+  loginAction,
+  twitterLoginAction,
+} from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,7 +17,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { isFacebookAuthConfigured } from "@/lib/auth/facebook";
 import { isGoogleAuthConfigured } from "@/lib/auth/google";
+import { isTwitterAuthConfigured } from "@/lib/auth/twitter";
 import { getSessionUploader } from "@/lib/auth/session";
 
 const ERRORS: Record<string, string> = {
@@ -21,6 +28,8 @@ const ERRORS: Record<string, string> = {
   suspended: "정지된 계정입니다.",
   not_verified: "작가 인증이 필요합니다. 인증이 완료된 후 이용해 주세요.",
   google_unavailable: "Google 로그인을 사용할 수 없습니다.",
+  twitter_unavailable: "X 로그인을 사용할 수 없습니다.",
+  facebook_unavailable: "Facebook 로그인을 사용할 수 없습니다.",
 };
 
 export default async function LoginPage({
@@ -81,18 +90,38 @@ export default async function LoginPage({
               로그인
             </Button>
           </form>
-          {isGoogleAuthConfigured() ? (
+          {isGoogleAuthConfigured() ||
+          isTwitterAuthConfigured() ||
+          isFacebookAuthConfigured() ? (
             <>
               <div className="my-4 flex items-center gap-2">
                 <Separator className="flex-1" />
                 <span className="text-xs text-muted-foreground">또는</span>
                 <Separator className="flex-1" />
               </div>
-              <form action={googleLoginAction}>
-                <Button type="submit" variant="outline" className="w-full">
-                  Google로 로그인
-                </Button>
-              </form>
+              <div className="flex flex-col gap-2">
+                {isGoogleAuthConfigured() ? (
+                  <form action={googleLoginAction}>
+                    <Button type="submit" variant="outline" className="w-full">
+                      Google로 로그인
+                    </Button>
+                  </form>
+                ) : null}
+                {isTwitterAuthConfigured() ? (
+                  <form action={twitterLoginAction}>
+                    <Button type="submit" variant="outline" className="w-full">
+                      X로 로그인
+                    </Button>
+                  </form>
+                ) : null}
+                {isFacebookAuthConfigured() ? (
+                  <form action={facebookLoginAction}>
+                    <Button type="submit" variant="outline" className="w-full">
+                      Facebook으로 로그인
+                    </Button>
+                  </form>
+                ) : null}
+              </div>
             </>
           ) : null}
         </CardContent>

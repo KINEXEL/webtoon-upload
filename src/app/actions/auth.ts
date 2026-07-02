@@ -4,7 +4,9 @@ import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 
 import { signIn, signOut } from "@/auth";
+import { isFacebookAuthConfigured } from "@/lib/auth/facebook";
 import { isGoogleAuthConfigured } from "@/lib/auth/google";
+import { isTwitterAuthConfigured } from "@/lib/auth/twitter";
 import { db } from "@/lib/db";
 
 export async function loginAction(formData: FormData): Promise<void> {
@@ -50,6 +52,22 @@ export async function googleLoginAction(): Promise<void> {
   }
 
   await signIn("google", { redirectTo: "/" });
+}
+
+export async function twitterLoginAction(): Promise<void> {
+  if (!isTwitterAuthConfigured()) {
+    redirect(`/login?error=twitter_unavailable`);
+  }
+
+  await signIn("twitter", { redirectTo: "/" });
+}
+
+export async function facebookLoginAction(): Promise<void> {
+  if (!isFacebookAuthConfigured()) {
+    redirect(`/login?error=facebook_unavailable`);
+  }
+
+  await signIn("facebook", { redirectTo: "/" });
 }
 
 export async function logoutAction(): Promise<void> {
