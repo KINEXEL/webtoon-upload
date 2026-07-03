@@ -90,6 +90,7 @@ export const oauthAdapter: Adapter = {
       emailVerifiedAt: user.emailVerified ?? new Date(),
       name: handle,
       avatarUrl: user.image,
+      profileSetupCompletedAt: null,
       verified: false,
     };
 
