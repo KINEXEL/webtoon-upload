@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -8,35 +8,119 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   prefix?: string;
-  onUploaded: (url: string) => void;
+  onUploaded: (url: string, file: File) => void | Promise<void>;
   className?: string;
   label?: string;
+  multiple?: boolean;
+  onQueueChange?: (pending: boolean) => void;
 };
 
-export function ImageUploader({ prefix = "uploads", onUploaded, className, label }: Props) {
+type UploadProgress = {
+  completed: number;
+  total: number;
+  currentFileName: string;
+};
+
+const fileNameCollator = new Intl.Collator(undefined, {
+  numeric: true,
+  sensitivity: "base",
+});
+
+export function ImageUploader({
+  prefix = "uploads",
+  onUploaded,
+  className,
+  label,
+  multiple = false,
+  onQueueChange,
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [pending, startTransition] = useTransition();
+  const queueRef = useRef<File[]>([]);
+  const processingRef = useRef(false);
+  const batchStatsRef = useRef({ total: 0, succeeded: 0, failed: 0 });
+  const [pending, setPending] = useState(false);
+  const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  function upload(file: File) {
+  async function uploadFile(file: File) {
     const form = new FormData();
     form.set("file", file);
     form.set("prefix", prefix);
 
-    startTransition(async () => {
+    const res = await fetch("/api/upload", { method: "POST", body: form });
+    const data = (await res.json()) as { url?: string; error?: string };
+    if (!res.ok || !data.url) throw new Error(data.error ?? "업로드 실패");
+    await onUploaded(data.url, file);
+  }
+
+  async function processQueue() {
+    if (processingRef.current) return;
+    processingRef.current = true;
+    setPending(true);
+    onQueueChange?.(true);
+
+    while (queueRef.current.length > 0) {
+      const file = queueRef.current.shift();
+      if (!file) continue;
+
+      const stats = batchStatsRef.current;
+      setProgress({
+        completed: stats.succeeded + stats.failed,
+        total: stats.total,
+        currentFileName: file.name,
+      });
+
       try {
-        const res = await fetch("/api/upload", { method: "POST", body: form });
-        const data = (await res.json()) as { url?: string; error?: string };
-        if (!res.ok || !data.url) {
-          toast.error(data.error ?? "업로드 실패");
-          return;
-        }
-        onUploaded(data.url);
-        toast.success("업로드 완료");
+        await uploadFile(file);
+        stats.succeeded += 1;
       } catch {
-        toast.error("업로드 중 오류가 발생했습니다.");
+        stats.failed += 1;
       }
-    });
+
+      setProgress({
+        completed: stats.succeeded + stats.failed,
+        total: stats.total,
+        currentFileName: file.name,
+      });
+    }
+
+    const { succeeded, failed } = batchStatsRef.current;
+    if (failed === 0) {
+      toast.success(
+        succeeded === 1 ? "업로드 완료" : `${succeeded}개 이미지를 순서대로 등록했습니다.`,
+      );
+    } else if (succeeded === 0) {
+      toast.error("이미지 업로드에 실패했습니다.");
+    } else {
+      toast.warning(`${succeeded}개 등록 완료, ${failed}개 실패`);
+    }
+
+    batchStatsRef.current = { total: 0, succeeded: 0, failed: 0 };
+    processingRef.current = false;
+    setPending(false);
+    setProgress(null);
+    onQueueChange?.(false);
+  }
+
+  function enqueue(files: FileList | File[]) {
+    const candidates = multiple ? Array.from(files) : Array.from(files).slice(0, 1);
+    const imageFiles = candidates
+      .filter((file) => file.type.startsWith("image/"))
+      .sort((a, b) => fileNameCollator.compare(a.name, b.name));
+
+    if (imageFiles.length === 0) {
+      toast.error("업로드할 이미지 파일을 선택하세요.");
+      return;
+    }
+
+    queueRef.current.push(...imageFiles);
+    batchStatsRef.current.total += imageFiles.length;
+    setProgress((current) => ({
+      completed: current?.completed ?? 0,
+      total: batchStatsRef.current.total,
+      currentFileName: current?.currentFileName ?? imageFiles[0].name,
+    }));
+    void processQueue();
   }
 
   return (
@@ -55,13 +139,12 @@ export function ImageUploader({ prefix = "uploads", onUploaded, className, label
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        const file = e.dataTransfer.files?.[0];
-        if (file) upload(file);
+        if (e.dataTransfer.files.length > 0) enqueue(e.dataTransfer.files);
       }}
       className={cn(
         "flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-md border border-dashed px-4 py-6 text-sm text-muted-foreground transition-colors hover:bg-muted/50",
         dragOver && "border-ring bg-muted/50",
-        pending && "pointer-events-none opacity-60",
+        pending && "border-primary/50 bg-muted/30",
         className,
       )}
     >
@@ -70,15 +153,22 @@ export function ImageUploader({ prefix = "uploads", onUploaded, className, label
       ) : (
         <Upload className="size-5" />
       )}
-      <span>{pending ? "업로드 중…" : (label ?? "이미지 드래그 또는 클릭")}</span>
+      <span>
+        {pending && progress
+          ? `업로드 중 ${Math.min(progress.completed + 1, progress.total)}/${progress.total}`
+          : (label ?? (multiple ? "이미지 여러 장 드래그 또는 클릭" : "이미지 드래그 또는 클릭"))}
+      </span>
+      {pending && progress ? (
+        <span className="max-w-full truncate text-xs">{progress.currentFileName}</span>
+      ) : null}
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
+        multiple={multiple}
         className="hidden"
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) upload(file);
+          if (e.target.files && e.target.files.length > 0) enqueue(e.target.files);
           e.target.value = "";
         }}
       />

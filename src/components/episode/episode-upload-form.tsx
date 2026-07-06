@@ -49,11 +49,11 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-sm text-destructive">{message}</p>;
 }
 
-function SubmitButton() {
+function SubmitButton({ uploadingImages }: { uploadingImages: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "등록 중…" : "등록"}
+    <Button type="submit" disabled={pending || uploadingImages}>
+      {pending ? "등록 중…" : uploadingImages ? "이미지 업로드 중…" : "등록"}
     </Button>
   );
 }
@@ -69,6 +69,7 @@ export function EpisodeUploadForm({
 
   const [activeLanguage, setActiveLanguage] = useState<ContentLanguage>("EN");
   const [assets, setAssets] = useState<StagedAsset[]>([]);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const uid = useId();
   const activeAssets = assets.filter((asset) => asset.language === activeLanguage);
 
@@ -165,7 +166,7 @@ export function EpisodeUploadForm({
         {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
 
         <div>
-          <SubmitButton />
+          <SubmitButton uploadingImages={uploadingImages} />
         </div>
       </div>
 
@@ -268,7 +269,13 @@ export function EpisodeUploadForm({
           ) : (
             <div className="rounded-md border border-dashed p-3">
               <p className="mb-2 text-sm font-medium">이미지 추가</p>
-              <ImageUploader prefix="episodes/new" onUploaded={addImage} />
+              <ImageUploader
+                prefix="episodes/new"
+                multiple
+                label="이미지 여러 장 드래그 또는 클릭"
+                onUploaded={addImage}
+                onQueueChange={setUploadingImages}
+              />
             </div>
           )}
         </div>

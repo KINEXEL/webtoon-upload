@@ -129,13 +129,15 @@ function ImageAssetList({
         <p className="mb-2 text-sm font-medium">이미지 추가</p>
         <ImageUploader
           prefix={`episodes/${episodeId}`}
-          onUploaded={(url) => {
+          multiple
+          label="이미지 여러 장 드래그 또는 클릭"
+          onUploaded={async (url) => {
             const fd = new FormData();
             fd.set("episodeId", episodeId);
             fd.set("language", language);
             fd.set("variant", "CONTENT");
             fd.set("imageUrl", url);
-            void addAssetAction(fd);
+            await addAssetAction(fd);
           }}
         />
       </div>
