@@ -10,11 +10,13 @@ import {
 } from "@/components/ui/table";
 import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getDict } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function MySeriesListPage() {
   const user = await requireVerifiedUploaderOrRedirect();
+  const dict = await getDict();
 
   const rows = await db.series.findMany({
     where: { authorId: user.id },
@@ -27,19 +29,22 @@ export default async function MySeriesListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="내 작품" description={`총 ${rows.length}개`} />
+      <PageHeader
+        title={dict.seriesList.title}
+        description={dict.seriesList.totalCount(rows.length)}
+      />
 
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[72px]">썸네일</TableHead>
-              <TableHead>제목</TableHead>
-              <TableHead>작가</TableHead>
-              <TableHead>타입</TableHead>
-              <TableHead>상태</TableHead>
-              <TableHead className="text-right">회차</TableHead>
-              <TableHead>발행</TableHead>
+              <TableHead className="w-[72px]">{dict.seriesList.thumbnailCol}</TableHead>
+              <TableHead>{dict.seriesList.titleCol}</TableHead>
+              <TableHead>{dict.seriesList.authorCol}</TableHead>
+              <TableHead>{dict.seriesList.typeCol}</TableHead>
+              <TableHead>{dict.seriesList.statusCol}</TableHead>
+              <TableHead className="text-right">{dict.seriesList.episodesCol}</TableHead>
+              <TableHead>{dict.seriesList.publishedCol}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -49,7 +54,7 @@ export default async function MySeriesListPage() {
                   colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  등록된 작품이 없습니다. 작품 등록은 운영팀에 문의하세요.
+                  {dict.seriesList.empty}
                 </TableCell>
               </TableRow>
             ) : (

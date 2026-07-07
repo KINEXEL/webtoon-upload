@@ -6,6 +6,7 @@ import { ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 import type { ViewType } from "@kinexel/webtoon-db";
 
 import type { EpisodeFormState } from "@/app/actions/episodes";
+import { useI18n } from "@/components/i18n-provider";
 import { ImageUploader } from "@/components/image-uploader";
 import { ImageUrlField } from "@/components/image-url-field";
 import { PreviewImage } from "@/components/episode/preview-image";
@@ -25,11 +26,6 @@ type StagedAsset = {
   variant: Variant;
 };
 
-const VARIANT_LABEL: Record<Variant, string> = {
-  CONTENT: "본문",
-  BANNER: "배너",
-  END_BANNER: "엔드배너",
-};
 const VARIANTS: Variant[] = ["CONTENT", "BANNER", "END_BANNER"];
 const LANGUAGES: { value: ContentLanguage; label: string }[] = [
   { value: "EN", label: "English" },
@@ -51,9 +47,14 @@ function FieldError({ message }: { message?: string }) {
 
 function SubmitButton({ uploadingImages }: { uploadingImages: boolean }) {
   const { pending } = useFormStatus();
+  const { dict } = useI18n();
   return (
     <Button type="submit" disabled={pending || uploadingImages}>
-      {pending ? "등록 중…" : uploadingImages ? "이미지 업로드 중…" : "등록"}
+      {pending
+        ? dict.newEpisode.submitting
+        : uploadingImages
+          ? dict.newEpisode.uploadingImages
+          : dict.newEpisode.submit}
     </Button>
   );
 }
@@ -64,6 +65,7 @@ export function EpisodeUploadForm({
   defaultViewType,
 }: Props) {
   const [state, formAction] = useActionState<EpisodeFormState, FormData>(action, {});
+  const { dict } = useI18n();
   const fe = state.fieldErrors ?? {};
   const v = state.values;
 
@@ -142,24 +144,24 @@ export function EpisodeUploadForm({
       {/* 좌측: 회차 정보 */}
       <div className="flex flex-col gap-5">
         <div className="flex flex-col gap-2 rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
-          <p>회차 번호: #{defaultEpisodeNumber} (자동 부여)</p>
-          <p>뷰어 타입: {defaultViewType} (작품 기본 설정 따름)</p>
-          <p>발행일시·발행 여부는 운영팀 검수 후 결정됩니다. 등록 시 항상 미발행 상태로 저장됩니다.</p>
+          <p>{dict.newEpisode.autoNumber(defaultEpisodeNumber)}</p>
+          <p>{dict.newEpisode.viewerType(defaultViewType)}</p>
+          <p>{dict.newEpisode.reviewNotice}</p>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="title">제목</Label>
+          <Label htmlFor="title">{dict.episodeForm.title}</Label>
           <Input id="title" name="title" defaultValue={v?.title ?? ""} />
           <FieldError message={fe.title} />
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label>회차 썸네일</Label>
+          <Label>{dict.episodeForm.thumbnail}</Label>
           <ImageUrlField name="thumbnailUrl" prefix="episodes/new" defaultValue={v?.thumbnailUrl} />
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label htmlFor="description">설명</Label>
+          <Label htmlFor="description">{dict.episodeForm.description}</Label>
           <Textarea id="description" name="description" rows={2} defaultValue={v?.description ?? ""} />
         </div>
 
@@ -174,7 +176,7 @@ export function EpisodeUploadForm({
       <div className="lg:border-l lg:pl-8">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-sm font-medium text-muted-foreground">
-            콘텐츠 미리보기 — {defaultViewType} ({activeAssets.length})
+            {dict.newEpisode.previewHeading(defaultViewType, activeAssets.length)}
           </h2>
           <div className="inline-flex rounded-lg bg-muted p-1">
             {LANGUAGES.map((language) => (
@@ -197,7 +199,7 @@ export function EpisodeUploadForm({
         <div className="flex max-h-[calc(100vh-12rem)] flex-col gap-2 overflow-y-auto pr-1">
           {activeAssets.length === 0 ? (
             <p className="px-1 py-6 text-center text-sm text-muted-foreground">
-              아직 추가된 콘텐츠가 없습니다. 아래에서 추가하세요.
+              {dict.newEpisode.emptyPreview}
             </p>
           ) : (
             activeAssets.map((asset, i) =>
@@ -219,18 +221,18 @@ export function EpisodeUploadForm({
                             (asset.variant === variant ? "bg-white text-black" : "text-white/80 hover:bg-white/20")
                           }
                         >
-                          {VARIANT_LABEL[variant]}
+                          {dict.assets.variant[variant]}
                         </button>
                       ))}
                     </div>
                     <div className="flex items-center gap-0.5 rounded bg-black/60 p-0.5">
-                      <button type="button" onClick={() => move(i, -1)} aria-label="위로" className="flex size-6 items-center justify-center rounded text-white hover:bg-white/20">
+                      <button type="button" onClick={() => move(i, -1)} aria-label={dict.common.moveUp} className="flex size-6 items-center justify-center rounded text-white hover:bg-white/20">
                         <ArrowUp className="size-4" />
                       </button>
-                      <button type="button" onClick={() => move(i, 1)} aria-label="아래로" className="flex size-6 items-center justify-center rounded text-white hover:bg-white/20">
+                      <button type="button" onClick={() => move(i, 1)} aria-label={dict.common.moveDown} className="flex size-6 items-center justify-center rounded text-white hover:bg-white/20">
                         <ArrowDown className="size-4" />
                       </button>
-                      <button type="button" onClick={() => remove(asset.id)} aria-label="삭제" className="flex size-6 items-center justify-center rounded text-red-300 hover:bg-white/20">
+                      <button type="button" onClick={() => remove(asset.id)} aria-label={dict.common.delete} className="flex size-6 items-center justify-center rounded text-red-300 hover:bg-white/20">
                         <Trash2 className="size-4" />
                       </button>
                     </div>
@@ -245,16 +247,16 @@ export function EpisodeUploadForm({
                       value={asset.value}
                       onChange={(e) => setText(asset.id, e.target.value)}
                     />
-                    <Badge variant="outline" className="w-fit">{VARIANT_LABEL[asset.variant]}</Badge>
+                    <Badge variant="outline" className="w-fit">{dict.assets.variant[asset.variant]}</Badge>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="위로" onClick={() => move(i, -1)}>
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label={dict.common.moveUp} onClick={() => move(i, -1)}>
                       <ArrowUp className="size-4" />
                     </Button>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="아래로" onClick={() => move(i, 1)}>
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label={dict.common.moveDown} onClick={() => move(i, 1)}>
                       <ArrowDown className="size-4" />
                     </Button>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="삭제" className="text-destructive" onClick={() => remove(asset.id)}>
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label={dict.common.delete} className="text-destructive" onClick={() => remove(asset.id)}>
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
@@ -268,11 +270,11 @@ export function EpisodeUploadForm({
             <TextAdder onAdd={addText} />
           ) : (
             <div className="rounded-md border border-dashed p-3">
-              <p className="mb-2 text-sm font-medium">이미지 추가</p>
+              <p className="mb-2 text-sm font-medium">{dict.assets.addImage}</p>
               <ImageUploader
                 prefix="episodes/new"
                 multiple
-                label="이미지 여러 장 드래그 또는 클릭"
+                label={dict.assets.dragMulti}
                 onUploaded={addImage}
                 onQueueChange={setUploadingImages}
               />
@@ -286,12 +288,13 @@ export function EpisodeUploadForm({
 
 function TextAdder({ onAdd }: { onAdd: (value: string) => void }) {
   const [value, setValue] = useState("");
+  const { dict } = useI18n();
   return (
     <div className="flex flex-col gap-2 rounded-md border border-dashed p-3">
-      <p className="text-sm font-medium">문단 추가</p>
+      <p className="text-sm font-medium">{dict.assets.addParagraph}</p>
       <Textarea
         rows={3}
-        placeholder="문단 내용…"
+        placeholder={dict.assets.paragraphPlaceholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
       />
@@ -304,7 +307,7 @@ function TextAdder({ onAdd }: { onAdd: (value: string) => void }) {
             setValue("");
           }}
         >
-          추가
+          {dict.common.add}
         </Button>
       </div>
     </div>

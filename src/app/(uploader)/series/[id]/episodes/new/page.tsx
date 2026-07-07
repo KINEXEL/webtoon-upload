@@ -5,6 +5,7 @@ import { EpisodeUploadForm } from "@/components/episode/episode-upload-form";
 import { PageHeader } from "@/components/page-header";
 import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getDict } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export default async function NewEpisodePage({
 }) {
   const user = await requireVerifiedUploaderOrRedirect();
   const { id: seriesId } = await params;
+  const dict = await getDict();
 
   const series = await db.series.findUnique({
     where: { id: seriesId },
@@ -33,7 +35,7 @@ export default async function NewEpisodePage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="회차 등록"
+        title={dict.newEpisode.title}
         description={series.title}
         backHref={`/series/${series.id}`}
       />

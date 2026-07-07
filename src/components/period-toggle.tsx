@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -12,15 +13,18 @@ type Props = {
 
 type Tab = "THIS_MONTH" | "CUSTOM" | "ALL";
 
-const TABS: { value: Tab; label: string }[] = [
-  { value: "THIS_MONTH", label: "이번달" },
-  { value: "CUSTOM", label: "지정 선택" },
-  { value: "ALL", label: "전체보기" },
-];
+const TABS: Tab[] = ["THIS_MONTH", "CUSTOM", "ALL"];
 
 export function PeriodToggle({ basePath }: Props) {
   const router = useRouter();
   const params = useSearchParams();
+  const { dict } = useI18n();
+
+  const tabLabel: Record<Tab, string> = {
+    THIS_MONTH: dict.period.thisMonth,
+    CUSTOM: dict.period.custom,
+    ALL: dict.period.all,
+  };
 
   const range = params.get("range") === "all" ? "all" : "month";
   const month = params.get("month") ?? "";
@@ -48,21 +52,21 @@ export function PeriodToggle({ basePath }: Props) {
       <div className="inline-flex w-fit rounded-lg bg-muted p-1">
         {TABS.map((tab) => (
           <button
-            key={tab.value}
+            key={tab}
             type="button"
             onClick={() => {
-              if (tab.value === "ALL") push("all", null);
-              else if (tab.value === "THIS_MONTH") push("month", null);
+              if (tab === "ALL") push("all", null);
+              else if (tab === "THIS_MONTH") push("month", null);
               else push("month", month || formatThisMonth());
             }}
             className={cn(
               "rounded-md px-3 py-1.5 text-sm font-medium transition",
-              activeTab === tab.value
+              activeTab === tab
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground",
             )}
           >
-            {tab.label}
+            {tabLabel[tab]}
           </button>
         ))}
       </div>

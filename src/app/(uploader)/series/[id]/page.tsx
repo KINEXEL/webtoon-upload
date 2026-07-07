@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getDict } from "@/lib/i18n/server";
 import { toDateTimeDisplay } from "@/lib/datetime-local";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ export default async function SeriesDetailPage({
 }) {
   const { id } = await params;
   const user = await requireVerifiedUploaderOrRedirect();
+  const dict = await getDict();
 
   const series = await db.series.findUnique({
     where: { id },
@@ -45,7 +47,7 @@ export default async function SeriesDetailPage({
     <div className="flex flex-col gap-6">
       <PageHeader
         title={series.title}
-        description={`작품 ID: ${series.id} · 작품 정보(제목/작가/타입/설명/태그/배너/발행여부)는 운영팀만 수정할 수 있습니다.`}
+        description={dict.seriesDetail.meta(series.id)}
         backHref="/series"
       />
 
@@ -65,10 +67,10 @@ export default async function SeriesDetailPage({
           <div className="flex items-center gap-2">
             <Badge variant="outline">{series.type}</Badge>
             <Badge variant={series.status === "COMPLETE" ? "secondary" : "default"}>
-              {series.status === "COMPLETE" ? "완결" : "연재중"}
+              {series.status === "COMPLETE" ? dict.status.complete : dict.status.ongoing}
             </Badge>
             <Badge variant={series.publishedAt ? "default" : "secondary"}>
-              {series.publishedAt ? "발행" : "미발행"}
+              {series.publishedAt ? dict.status.published : dict.status.unpublished}
             </Badge>
           </div>
           {series.description ? (
@@ -91,19 +93,19 @@ export default async function SeriesDetailPage({
       <section>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-medium text-muted-foreground">
-            회차 ({series.episodes.length})
+            {dict.seriesDetail.episodesHeading(series.episodes.length)}
           </h2>
           <Button
             variant="outline"
             size="sm"
             render={<Link href={`/series/${series.id}/episodes/new`} />}
           >
-            <Plus className="size-4" /> 회차 등록
+            <Plus className="size-4" /> {dict.seriesDetail.addEpisode}
           </Button>
         </div>
         {series.episodes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            등록된 회차가 없습니다.
+            {dict.seriesDetail.noEpisodes}
           </p>
         ) : (
           <ul className="divide-y rounded-md border">
@@ -137,7 +139,7 @@ export default async function SeriesDetailPage({
                   </Link>
                   <Badge variant="outline">{ep.viewType}</Badge>
                   <Badge variant={ep.isPublished ? "default" : "secondary"}>
-                    {ep.isPublished ? "발행" : "관리자 승인 대기"}
+                    {ep.isPublished ? dict.status.published : dict.status.pendingApproval}
                   </Badge>
                 </span>
                 <span className="text-right text-xs text-muted-foreground">

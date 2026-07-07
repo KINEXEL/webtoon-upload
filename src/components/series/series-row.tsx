@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+import { useI18n } from "@/components/i18n-provider";
 import { Badge } from "@/components/ui/badge";
 import { TableCell, TableRow } from "@/components/ui/table";
 
@@ -28,6 +29,7 @@ export function SeriesRow({
   publishedAt,
 }: Props) {
   const router = useRouter();
+  const { dict } = useI18n();
   const href = `/series/${id}`;
 
   return (
@@ -62,12 +64,12 @@ export function SeriesRow({
       </TableCell>
       <TableCell>
         <Badge variant={status === "COMPLETE" ? "secondary" : "default"}>
-          {status === "COMPLETE" ? "완결" : "연재중"}
+          {status === "COMPLETE" ? dict.status.complete : dict.status.ongoing}
         </Badge>
       </TableCell>
       <TableCell className="text-right tabular-nums">{episodeCount}</TableCell>
       <TableCell className="text-sm text-muted-foreground">
-        {publishedAt ?? "미발행"}
+        {publishedAt ?? dict.status.unpublished}
       </TableCell>
     </TableRow>
   );

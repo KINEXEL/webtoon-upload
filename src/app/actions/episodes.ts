@@ -6,12 +6,16 @@ import { z } from "zod";
 
 import { requireVerifiedUploader } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getDict } from "@/lib/i18n/server";
+import type { Dict } from "@/lib/i18n/dictionaries";
 
-const episodeSchema = z.object({
-  title: z.string().trim().min(1, "제목을 입력하세요."),
-  description: z.string().trim().optional(),
-  thumbnailUrl: z.string().trim().optional(),
-});
+function episodeSchema(dict: Dict) {
+  return z.object({
+    title: z.string().trim().min(1, dict.actionErrors.titleRequired),
+    description: z.string().trim().optional(),
+    thumbnailUrl: z.string().trim().optional(),
+  });
+}
 
 export type EpisodeFormValues = {
   title: string;
@@ -59,8 +63,8 @@ function parseStagedAssets(raw: FormDataEntryValue | null) {
   }
 }
 
-function parse(formData: FormData) {
-  return episodeSchema.safeParse({
+function parse(formData: FormData, dict: Dict) {
+  return episodeSchema(dict).safeParse({
     title: formData.get("title"),
     description: formData.get("description") ?? undefined,
     thumbnailUrl: formData.get("thumbnailUrl") ?? undefined,
@@ -93,17 +97,18 @@ export async function requireOwnedUnpublishedEpisode(
   userId: string,
   episodeId: string,
 ) {
+  const dict = await getDict();
   const episode = await db.episode.findUnique({
     where: { id: episodeId },
     include: { series: { select: { id: true, authorId: true, title: true, type: true } } },
   });
   if (!episode || episode.series.authorId !== userId) {
-    return { episode: null, error: "회차를 찾을 수 없습니다." } as const;
+    return { episode: null, error: dict.actionErrors.episodeNotFound } as const;
   }
   if (episode.isPublished) {
     return {
       episode: null,
-      error: "이미 발행된 회차는 수정할 수 없습니다.",
+      error: dict.actionErrors.publishedLocked,
     } as const;
   }
   return { episode, error: null } as const;
@@ -115,11 +120,12 @@ export async function createUploaderEpisodeAction(
   formData: FormData,
 ): Promise<EpisodeFormState> {
   const user = await requireVerifiedUploader();
+  const dict = await getDict();
 
-  const parsed = parse(formData);
+  const parsed = parse(formData, dict);
   if (!parsed.success) {
     return {
-      error: "입력값을 확인하세요.",
+      error: dict.actionErrors.checkInput,
       fieldErrors: flatten(parsed.error),
       values: rawValues(formData),
     };
@@ -128,7 +134,7 @@ export async function createUploaderEpisodeAction(
 
   const series = await requireOwnedSeries(user.id, seriesId);
   if (!series) {
-    return { error: "작품을 찾을 수 없습니다.", values: rawValues(formData) };
+    return { error: dict.actionErrors.seriesNotFound, values: rawValues(formData) };
   }
 
   const last = await db.episode.findFirst({
@@ -198,11 +204,12 @@ export async function updateUploaderEpisodeAction(
   formData: FormData,
 ): Promise<EpisodeFormState> {
   const user = await requireVerifiedUploader();
+  const dict = await getDict();
 
-  const parsed = parse(formData);
+  const parsed = parse(formData, dict);
   if (!parsed.success) {
     return {
-      error: "입력값을 확인하세요.",
+      error: dict.actionErrors.checkInput,
       fieldErrors: flatten(parsed.error),
       values: rawValues(formData),
     };
@@ -211,7 +218,10 @@ export async function updateUploaderEpisodeAction(
 
   const { episode, error } = await requireOwnedUnpublishedEpisode(user.id, episodeId);
   if (!episode) {
-    return { error: error ?? "회차를 찾을 수 없습니다.", values: rawValues(formData) };
+    return {
+      error: error ?? dict.actionErrors.episodeNotFound,
+      values: rawValues(formData),
+    };
   }
 
   await db.episode.update({

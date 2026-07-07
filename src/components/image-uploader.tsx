@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { Upload, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -34,6 +35,7 @@ export function ImageUploader({
   multiple = false,
   onQueueChange,
 }: Props) {
+  const { dict } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const queueRef = useRef<File[]>([]);
   const processingRef = useRef(false);
@@ -49,7 +51,7 @@ export function ImageUploader({
 
     const res = await fetch("/api/upload", { method: "POST", body: form });
     const data = (await res.json()) as { url?: string; error?: string };
-    if (!res.ok || !data.url) throw new Error(data.error ?? "업로드 실패");
+    if (!res.ok || !data.url) throw new Error(data.error ?? dict.assets.uploadAllFailed);
     await onUploaded(data.url, file);
   }
 
@@ -87,12 +89,12 @@ export function ImageUploader({
     const { succeeded, failed } = batchStatsRef.current;
     if (failed === 0) {
       toast.success(
-        succeeded === 1 ? "업로드 완료" : `${succeeded}개 이미지를 순서대로 등록했습니다.`,
+        succeeded === 1 ? dict.assets.uploadDone : dict.assets.uploadedN(succeeded),
       );
     } else if (succeeded === 0) {
-      toast.error("이미지 업로드에 실패했습니다.");
+      toast.error(dict.assets.uploadAllFailed);
     } else {
-      toast.warning(`${succeeded}개 등록 완료, ${failed}개 실패`);
+      toast.warning(dict.assets.uploadPartial(succeeded, failed));
     }
 
     batchStatsRef.current = { total: 0, succeeded: 0, failed: 0 };
@@ -109,7 +111,7 @@ export function ImageUploader({
       .sort((a, b) => fileNameCollator.compare(a.name, b.name));
 
     if (imageFiles.length === 0) {
-      toast.error("업로드할 이미지 파일을 선택하세요.");
+      toast.error(dict.assets.selectImageFile);
       return;
     }
 
@@ -155,8 +157,11 @@ export function ImageUploader({
       )}
       <span>
         {pending && progress
-          ? `업로드 중 ${Math.min(progress.completed + 1, progress.total)}/${progress.total}`
-          : (label ?? (multiple ? "이미지 여러 장 드래그 또는 클릭" : "이미지 드래그 또는 클릭"))}
+          ? dict.assets.uploading(
+              Math.min(progress.completed + 1, progress.total),
+              progress.total,
+            )
+          : (label ?? (multiple ? dict.assets.dragMulti : dict.assets.dragSingle))}
       </span>
       {pending && progress ? (
         <span className="max-w-full truncate text-xs">{progress.currentFileName}</span>

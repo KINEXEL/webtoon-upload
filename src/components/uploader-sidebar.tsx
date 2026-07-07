@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useI18n } from "@/components/i18n-provider";
 import { NAV_ITEMS } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ function isActive(pathname: string, href: string): boolean {
 
 export function UploaderSidebar() {
   const pathname = usePathname();
+  const { dict } = useI18n();
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
@@ -44,7 +46,7 @@ export function UploaderSidebar() {
                   )}
                 >
                   <Icon className="size-4" />
-                  {item.label}
+                  {dict.nav[item.labelKey]}
                 </Link>
               </li>
             );

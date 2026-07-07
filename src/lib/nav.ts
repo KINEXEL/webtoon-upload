@@ -1,14 +1,17 @@
 import { BookOpen, Crown, Receipt, Wallet, type LucideIcon } from "lucide-react";
 
+import type { Dict } from "@/lib/i18n/dictionaries";
+
 export type NavItem = {
-  label: string;
+  /** dict.nav 의 키 — 라벨은 선택된 UI 언어 사전에서 조회 */
+  labelKey: keyof Dict["nav"];
   href: string;
   icon: LucideIcon;
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "내 작품", href: "/series", icon: BookOpen },
-  { label: "결제내역", href: "/payments", icon: Receipt },
-  { label: "멤버십내역", href: "/memberships", icon: Crown },
-  { label: "정산내역", href: "/settlement", icon: Wallet },
+  { labelKey: "mySeries", href: "/series", icon: BookOpen },
+  { labelKey: "payments", href: "/payments", icon: Receipt },
+  { labelKey: "memberships", href: "/memberships", icon: Crown },
+  { labelKey: "settlement", href: "/settlement", icon: Wallet },
 ];

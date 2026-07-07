@@ -10,6 +10,7 @@ import {
   moveAssetAction,
   updateAssetAction,
 } from "@/app/actions/assets";
+import { useI18n } from "@/components/i18n-provider";
 import { ImageUploader } from "@/components/image-uploader";
 import { PreviewImage } from "@/components/episode/preview-image";
 import { Badge } from "@/components/ui/badge";
@@ -30,16 +31,11 @@ const LANGUAGES: { value: ContentLanguage; label: string }[] = [
   { value: "ES", label: "Spanish" },
 ];
 
-const VARIANT_LABEL: Record<string, string> = {
-  CONTENT: "본문",
-  BANNER: "배너",
-  END_BANNER: "엔드배너",
-};
-
 const VARIANTS = ["CONTENT", "BANNER", "END_BANNER"] as const;
 
 /** 이미지 위 오버레이: variant 토글 + 순서 변경 + 삭제 (모두 서버액션) */
 function ImageOverlay({ asset, index }: { asset: EpisodeAsset; index: number }) {
+  const { dict } = useI18n();
   return (
     <>
       <span className="pointer-events-none absolute left-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-xs font-medium tabular-nums text-white">
@@ -62,7 +58,7 @@ function ImageOverlay({ asset, index }: { asset: EpisodeAsset; index: number }) 
                   : "text-white/80 hover:bg-white/20")
               }
             >
-              {VARIANT_LABEL[v]}
+              {dict.assets.variant[v]}
             </button>
           ))}
         </form>
@@ -71,20 +67,20 @@ function ImageOverlay({ asset, index }: { asset: EpisodeAsset; index: number }) 
           <form action={moveAssetAction}>
             <input type="hidden" name="assetId" value={asset.id} />
             <input type="hidden" name="direction" value="up" />
-            <button type="submit" aria-label="위로" className="flex size-6 items-center justify-center rounded text-white hover:bg-white/20">
+            <button type="submit" aria-label={dict.common.moveUp} className="flex size-6 items-center justify-center rounded text-white hover:bg-white/20">
               <ArrowUp className="size-4" />
             </button>
           </form>
           <form action={moveAssetAction}>
             <input type="hidden" name="assetId" value={asset.id} />
             <input type="hidden" name="direction" value="down" />
-            <button type="submit" aria-label="아래로" className="flex size-6 items-center justify-center rounded text-white hover:bg-white/20">
+            <button type="submit" aria-label={dict.common.moveDown} className="flex size-6 items-center justify-center rounded text-white hover:bg-white/20">
               <ArrowDown className="size-4" />
             </button>
           </form>
           <form action={deleteAssetAction}>
             <input type="hidden" name="assetId" value={asset.id} />
-            <button type="submit" aria-label="삭제" className="flex size-6 items-center justify-center rounded text-red-300 hover:bg-white/20">
+            <button type="submit" aria-label={dict.common.delete} className="flex size-6 items-center justify-center rounded text-red-300 hover:bg-white/20">
               <Trash2 className="size-4" />
             </button>
           </form>
@@ -103,11 +99,12 @@ function ImageAssetList({
   episodeId: string;
   language: ContentLanguage;
 }) {
+  const { dict } = useI18n();
   return (
     <div className="flex flex-col gap-2">
       {assets.length === 0 ? (
         <p className="px-1 py-6 text-center text-sm text-muted-foreground">
-          등록된 이미지가 없습니다. 아래에서 추가하세요.
+          {dict.assets.noImages}
         </p>
       ) : (
         assets.map((asset, i) => (
@@ -126,11 +123,11 @@ function ImageAssetList({
       )}
 
       <div className="rounded-md border border-dashed p-3">
-        <p className="mb-2 text-sm font-medium">이미지 추가</p>
+        <p className="mb-2 text-sm font-medium">{dict.assets.addImage}</p>
         <ImageUploader
           prefix={`episodes/${episodeId}`}
           multiple
-          label="이미지 여러 장 드래그 또는 클릭"
+          label={dict.assets.dragMulti}
           onUploaded={async (url) => {
             const fd = new FormData();
             fd.set("episodeId", episodeId);
@@ -154,6 +151,7 @@ function TextAssetList({
   episodeId: string;
   language: ContentLanguage;
 }) {
+  const { dict } = useI18n();
   return (
     <div className="flex flex-col gap-3">
       {assets.map((asset, i) => (
@@ -169,9 +167,9 @@ function TextAssetList({
               defaultValue={asset.textContent ?? ""}
             />
             <div className="flex items-center justify-between">
-              <Badge variant="outline">{VARIANT_LABEL[asset.variant]}</Badge>
+              <Badge variant="outline">{dict.assets.variant[asset.variant]}</Badge>
               <Button type="submit" variant="outline" size="sm">
-                문단 저장
+                {dict.assets.saveParagraph}
               </Button>
             </div>
           </form>
@@ -179,20 +177,20 @@ function TextAssetList({
             <form action={moveAssetAction}>
               <input type="hidden" name="assetId" value={asset.id} />
               <input type="hidden" name="direction" value="up" />
-              <Button type="submit" variant="ghost" size="icon-sm" aria-label="위로">
+              <Button type="submit" variant="ghost" size="icon-sm" aria-label={dict.common.moveUp}>
                 <ArrowUp className="size-4" />
               </Button>
             </form>
             <form action={moveAssetAction}>
               <input type="hidden" name="assetId" value={asset.id} />
               <input type="hidden" name="direction" value="down" />
-              <Button type="submit" variant="ghost" size="icon-sm" aria-label="아래로">
+              <Button type="submit" variant="ghost" size="icon-sm" aria-label={dict.common.moveDown}>
                 <ArrowDown className="size-4" />
               </Button>
             </form>
             <form action={deleteAssetAction}>
               <input type="hidden" name="assetId" value={asset.id} />
-              <Button type="submit" variant="ghost" size="icon-sm" aria-label="삭제" className="text-destructive">
+              <Button type="submit" variant="ghost" size="icon-sm" aria-label={dict.common.delete} className="text-destructive">
                 <Trash2 className="size-4" />
               </Button>
             </form>
@@ -204,14 +202,14 @@ function TextAssetList({
         action={addAssetAction}
         className="flex flex-col gap-2 rounded-md border border-dashed p-3"
       >
-        <p className="text-sm font-medium">문단 추가</p>
+        <p className="text-sm font-medium">{dict.assets.addParagraph}</p>
         <input type="hidden" name="episodeId" value={episodeId} />
         <input type="hidden" name="language" value={language} />
         <input type="hidden" name="variant" value="CONTENT" />
-        <Textarea name="textContent" rows={3} placeholder="문단 내용…" />
+        <Textarea name="textContent" rows={3} placeholder={dict.assets.paragraphPlaceholder} />
         <div>
           <Button type="submit" size="sm">
-            추가
+            {dict.common.add}
           </Button>
         </div>
       </form>

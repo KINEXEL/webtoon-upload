@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { periodDateFilter, resolvePeriod } from "@/lib/period";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +22,8 @@ export default async function PaymentsPage({
 }) {
   const user = await requireVerifiedUploaderOrRedirect();
   const sp = await searchParams;
-  const period = resolvePeriod(sp);
+  const [dict, locale] = await Promise.all([getDict(), getLocale()]);
+  const period = resolvePeriod(sp, locale);
   const unlockedAt = periodDateFilter(period);
 
   const grouped = await db.episodeUnlock.groupBy({
@@ -58,14 +60,14 @@ export default async function PaymentsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="결제내역" description="내 작품 회차의 코인 결제 현황" />
+      <PageHeader title={dict.payments.title} description={dict.payments.description} />
 
       <PeriodToggle basePath="/payments" />
 
       <div className="rounded-md border p-4">
-        <p className="text-sm text-muted-foreground">{period.label} 종합 판매 코인수</p>
+        <p className="text-sm text-muted-foreground">{dict.payments.totalCoins(period.label)}</p>
         <p className="text-3xl font-semibold tabular-nums">
-          {totalCoins.toLocaleString()} 코인
+          {dict.payments.coins(totalCoins.toLocaleString())}
         </p>
       </div>
 
@@ -73,17 +75,17 @@ export default async function PaymentsPage({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>작품</TableHead>
-              <TableHead>회차</TableHead>
-              <TableHead className="text-right">결제 건수</TableHead>
-              <TableHead className="text-right">판매 코인</TableHead>
+              <TableHead>{dict.payments.seriesCol}</TableHead>
+              <TableHead>{dict.payments.episodeCol}</TableHead>
+              <TableHead className="text-right">{dict.payments.countCol}</TableHead>
+              <TableHead className="text-right">{dict.payments.coinsCol}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
-                  해당 기간에 결제된 회차가 없습니다.
+                  {dict.payments.empty}
                 </TableCell>
               </TableRow>
             ) : (

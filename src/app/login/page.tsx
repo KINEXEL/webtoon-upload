@@ -21,16 +21,7 @@ import { isFacebookAuthConfigured } from "@/lib/auth/facebook";
 import { isGoogleAuthConfigured } from "@/lib/auth/google";
 import { isTwitterAuthConfigured } from "@/lib/auth/twitter";
 import { getSessionUploader } from "@/lib/auth/session";
-
-const ERRORS: Record<string, string> = {
-  missing: "아이디와 비밀번호를 입력하세요.",
-  invalid: "아이디 또는 비밀번호가 올바르지 않습니다.",
-  suspended: "정지된 계정입니다.",
-  not_verified: "작가 인증이 필요합니다. 인증이 완료된 후 이용해 주세요.",
-  google_unavailable: "Google 로그인을 사용할 수 없습니다.",
-  twitter_unavailable: "X 로그인을 사용할 수 없습니다.",
-  facebook_unavailable: "Facebook 로그인을 사용할 수 없습니다.",
-};
+import { getDict } from "@/lib/i18n/server";
 
 export default async function LoginPage({
   searchParams,
@@ -38,6 +29,7 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string; callbackUrl?: string }>;
 }) {
   const { error, callbackUrl } = await searchParams;
+  const dict = await getDict();
 
   // DB까지 확인해서 진짜 유효(verified, 비정지)한 세션일 때만 / 로 보낸다.
   // JWT만 유효하고 DB 기준으로는 막힌 계정은 여기서 그냥 로그인 폼을 보여줘야
@@ -52,27 +44,24 @@ export default async function LoginPage({
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle className="text-xl">COMIQUE Upload</CardTitle>
-          <CardDescription>
-            webtoon 작가 계정으로 로그인하세요. 인증(verified)된 작가만
-            이용할 수 있습니다.
-          </CardDescription>
+          <CardDescription>{dict.login.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <form action={loginAction} className="flex flex-col gap-4">
             <input type="hidden" name="callbackUrl" value={callbackUrl ?? "/"} />
             <div className="flex flex-col gap-2">
-              <Label htmlFor="userId">아이디</Label>
+              <Label htmlFor="userId">{dict.login.userId}</Label>
               <Input
                 id="userId"
                 name="userId"
                 type="text"
-                placeholder="아이디"
+                placeholder={dict.login.userId}
                 autoComplete="username"
                 required
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">비밀번호</Label>
+              <Label htmlFor="password">{dict.login.password}</Label>
               <Input
                 id="password"
                 name="password"
@@ -83,11 +72,11 @@ export default async function LoginPage({
             </div>
             {error ? (
               <p className="text-sm text-destructive">
-                {ERRORS[error] ?? "로그인에 실패했습니다."}
+                {dict.login.errors[error] ?? dict.login.errors.fallback}
               </p>
             ) : null}
             <Button type="submit" className="w-full">
-              로그인
+              {dict.login.submit}
             </Button>
           </form>
           {isGoogleAuthConfigured() ||
@@ -96,28 +85,28 @@ export default async function LoginPage({
             <>
               <div className="my-4 flex items-center gap-2">
                 <Separator className="flex-1" />
-                <span className="text-xs text-muted-foreground">또는</span>
+                <span className="text-xs text-muted-foreground">{dict.common.or}</span>
                 <Separator className="flex-1" />
               </div>
               <div className="flex flex-col gap-2">
                 {isGoogleAuthConfigured() ? (
                   <form action={googleLoginAction}>
                     <Button type="submit" variant="outline" className="w-full">
-                      Google로 로그인
+                      {dict.login.google}
                     </Button>
                   </form>
                 ) : null}
                 {isTwitterAuthConfigured() ? (
                   <form action={twitterLoginAction}>
                     <Button type="submit" variant="outline" className="w-full">
-                      X로 로그인
+                      {dict.login.twitter}
                     </Button>
                   </form>
                 ) : null}
                 {isFacebookAuthConfigured() ? (
                   <form action={facebookLoginAction}>
                     <Button type="submit" variant="outline" className="w-full">
-                      Facebook으로 로그인
+                      {dict.login.facebook}
                     </Button>
                   </form>
                 ) : null}

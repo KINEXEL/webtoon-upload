@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getDict } from "@/lib/i18n/server";
 import { toDateTimeDisplay } from "@/lib/datetime-local";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default async function EpisodeDetailPage({
 }) {
   const { id } = await params;
   const user = await requireVerifiedUploaderOrRedirect();
+  const dict = await getDict();
 
   const episode = await db.episode.findUnique({
     where: { id },
@@ -46,39 +48,48 @@ export default async function EpisodeDetailPage({
       />
 
       <div className="flex flex-wrap items-center gap-3 rounded-md border p-4 text-sm">
-        <span className="text-muted-foreground">발행일시</span>
+        <span className="text-muted-foreground">{dict.episodeDetail.publishedAtLabel}</span>
         <span className="font-medium">{toDateTimeDisplay(episode.publishedAt)}</span>
         <Badge variant={episode.isPublished ? "default" : "secondary"}>
-          {episode.isPublished ? "발행됨" : "관리자 승인 대기"}
+          {episode.isPublished ? dict.status.publishedDone : dict.status.pendingApproval}
         </Badge>
         {isLocked ? (
-          <span className="text-muted-foreground">
-            이미 발행된 회차는 더 이상 수정할 수 없습니다.
-          </span>
+          <span className="text-muted-foreground">{dict.episodeDetail.lockedNotice}</span>
         ) : null}
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 text-sm font-medium text-muted-foreground">회차 정보</h2>
+          <h2 className="mb-3 text-sm font-medium text-muted-foreground">
+            {dict.episodeDetail.infoHeading}
+          </h2>
           {isLocked ? (
             <p className="text-sm text-muted-foreground">
-              제목: {episode.title}
-              {episode.description ? <><br />설명: {episode.description}</> : null}
+              {dict.episodeForm.title}: {episode.title}
+              {episode.description ? (
+                <>
+                  <br />
+                  {dict.episodeForm.description}: {episode.description}
+                </>
+              ) : null}
             </p>
           ) : (
-            <EpisodeForm action={updateAction} episode={episode} submitLabel="저장" />
+            <EpisodeForm
+              action={updateAction}
+              episode={episode}
+              submitLabel={dict.common.save}
+            />
           )}
         </section>
 
         <section className="lg:border-l lg:pl-8">
           <h2 className="mb-3 text-sm font-medium text-muted-foreground">
-            콘텐츠 — {episode.viewType} ({episode._count.assets})
+            {dict.episodeDetail.contentHeading(episode.viewType, episode._count.assets)}
           </h2>
           <div className="max-h-[calc(100vh-12rem)] overflow-y-auto pr-1">
             {isLocked ? (
               <p className="text-sm text-muted-foreground">
-                이미 발행된 회차의 콘텐츠는 수정할 수 없습니다.
+                {dict.episodeDetail.lockedContent}
               </p>
             ) : (
               <AssetEditor

@@ -14,15 +14,10 @@ import {
 } from "@/components/ui/table";
 import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { resolvePeriod } from "@/lib/period";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABEL: Record<string, string> = {
-  ACTIVE: "구독중",
-  CANCELED: "해지",
-  EXPIRED: "만료",
-};
 
 export default async function MembershipsPage({
   searchParams,
@@ -31,7 +26,8 @@ export default async function MembershipsPage({
 }) {
   const user = await requireVerifiedUploaderOrRedirect();
   const sp = await searchParams;
-  const period = resolvePeriod(sp);
+  const [dict, locale] = await Promise.all([getDict(), getLocale()]);
+  const period = resolvePeriod(sp, locale);
 
   // 선택한 기간(월)과 구독 기간이 겹치면 "유지"로 간주. 전체보기는 누적 전체.
   const where: Prisma.MembershipWhereInput = { artistId: user.id };
@@ -50,14 +46,16 @@ export default async function MembershipsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="멤버십내역" description="내 멤버십 구독자 현황" />
+      <PageHeader title={dict.memberships.title} description={dict.memberships.description} />
 
       <PeriodToggle basePath="/memberships" />
 
       <div className="rounded-md border p-4">
-        <p className="text-sm text-muted-foreground">{period.label} 유지 구독자 수</p>
+        <p className="text-sm text-muted-foreground">
+          {dict.memberships.activeCount(period.label)}
+        </p>
         <p className="text-3xl font-semibold tabular-nums">
-          {memberships.length.toLocaleString()}명
+          {dict.memberships.people(memberships.length.toLocaleString())}
         </p>
       </div>
 
@@ -65,18 +63,18 @@ export default async function MembershipsPage({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>구독자</TableHead>
-              <TableHead>가입일</TableHead>
-              <TableHead className="text-right">경과일</TableHead>
-              <TableHead className="text-right">구독 개월수</TableHead>
-              <TableHead>상태</TableHead>
+              <TableHead>{dict.memberships.subscriberCol}</TableHead>
+              <TableHead>{dict.memberships.joinedCol}</TableHead>
+              <TableHead className="text-right">{dict.memberships.elapsedCol}</TableHead>
+              <TableHead className="text-right">{dict.memberships.monthsCol}</TableHead>
+              <TableHead>{dict.memberships.statusCol}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {memberships.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                  해당 기간에 유지된 구독자가 없습니다.
+                  {dict.memberships.empty}
                 </TableCell>
               </TableRow>
             ) : (
@@ -90,11 +88,15 @@ export default async function MembershipsPage({
                       <div className="text-xs text-muted-foreground">{m.member.email}</div>
                     </TableCell>
                     <TableCell>{m.createdAt.toISOString().slice(0, 10)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{elapsedDays}일</TableCell>
-                    <TableCell className="text-right tabular-nums">{months}개월</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {dict.memberships.days(elapsedDays)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {dict.memberships.months(months)}
+                    </TableCell>
                     <TableCell>
                       <Badge variant={m.status === "ACTIVE" ? "default" : "secondary"}>
-                        {STATUS_LABEL[m.status] ?? m.status}
+                        {dict.memberships.status[m.status] ?? m.status}
                       </Badge>
                     </TableCell>
                   </TableRow>

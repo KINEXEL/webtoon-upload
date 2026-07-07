@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { X } from "lucide-react";
 
+import { useI18n } from "@/components/i18n-provider";
 import { ImageUploader } from "@/components/image-uploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ type Props = {
 /** URL 직접 입력 + Blob 업로드 + 미리보기. form 에 `name` 값으로 제출됨. */
 export function ImageUrlField({ name, prefix, defaultValue }: Props) {
   const [url, setUrl] = useState(defaultValue ?? "");
+  const { dict } = useI18n();
 
   return (
     <div className="flex flex-col gap-2">
@@ -25,7 +27,7 @@ export function ImageUrlField({ name, prefix, defaultValue }: Props) {
           name={name}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://… 또는 아래에서 업로드"
+          placeholder={dict.assets.urlPlaceholder}
         />
         {url ? (
           <Button
@@ -33,7 +35,7 @@ export function ImageUrlField({ name, prefix, defaultValue }: Props) {
             variant="outline"
             size="icon"
             onClick={() => setUrl("")}
-            aria-label="지우기"
+            aria-label={dict.common.clear}
           >
             <X className="size-4" />
           </Button>

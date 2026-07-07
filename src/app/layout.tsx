@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { I18nProvider } from "@/components/i18n-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { getLocale } from "@/lib/i18n/server";
 import { getDefaultOpenGraphMetadata } from "@/lib/metadata/open-graph";
 import "./globals.css";
 
@@ -43,14 +45,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+
   return (
     <html
-      lang="ko"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
@@ -61,8 +65,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col">
-        {children}
-        <Toaster />
+        <I18nProvider locale={locale}>
+          {children}
+          <Toaster />
+        </I18nProvider>
       </body>
     </html>
   );

@@ -3,6 +3,7 @@ import { PeriodToggle } from "@/components/period-toggle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireVerifiedUploaderOrRedirect } from "@/lib/auth/session";
 import { db } from "@/lib/db";
+import { getDict, getLocale } from "@/lib/i18n/server";
 import { periodDateFilter, resolvePeriod } from "@/lib/period";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +24,8 @@ export default async function SettlementPage({
 }) {
   const user = await requireVerifiedUploaderOrRedirect();
   const sp = await searchParams;
-  const period = resolvePeriod(sp);
+  const [dict, locale] = await Promise.all([getDict(), getLocale()]);
+  const period = resolvePeriod(sp, locale);
   const dateFilter = periodDateFilter(period);
 
   const [coinAgg, membershipAgg] = await Promise.all([
@@ -56,35 +58,37 @@ export default async function SettlementPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="정산내역" description="내 작품으로 정산받을 금액" />
+      <PageHeader title={dict.settlement.title} description={dict.settlement.description} />
 
       <PeriodToggle basePath="/settlement" />
 
       <div className="rounded-md border p-4">
-        <p className="text-sm text-muted-foreground">{period.label} 정산 금액</p>
+        <p className="text-sm text-muted-foreground">{dict.settlement.amount(period.label)}</p>
         <p className="text-4xl font-semibold tabular-nums">{formatUsd(payoutUsd)}</p>
         {commissionBps === 0 ? (
-          <p className="mt-1 text-xs text-destructive">
-            수수료율이 설정되어 있지 않습니다. 운영팀에 문의하세요.
-          </p>
+          <p className="mt-1 text-xs text-destructive">{dict.settlement.royaltyNotSet}</p>
         ) : null}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">코인 매출</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              {dict.settlement.coinRevenue}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xl font-semibold tabular-nums">{formatUsd(coinRevenueUsd)}</p>
             <p className="text-xs text-muted-foreground">
-              {coinsSold.toLocaleString()} 코인 × $0.08
+              {dict.settlement.coinFormula(coinsSold.toLocaleString())}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">멤버십 매출</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              {dict.settlement.membershipRevenue}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xl font-semibold tabular-nums">
@@ -94,7 +98,9 @@ export default async function SettlementPage({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground">적용 수수료율</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">
+              {dict.settlement.appliedRoyalty}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-xl font-semibold tabular-nums">{commissionRatePercent}%</p>
